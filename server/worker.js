@@ -12,9 +12,8 @@
 
 // ⚠️ CONFIGURE THESE VALUES
 const ALLOWED_EXTENSION_IDS = [
-    // Replace with your actual extension ID(s)
-    // Example: "abcdefghijklmnopqrstuvwxyz123456"
-    "YOUR_EXTENSION_ID_HERE"
+    // Your Echo extension ID
+    "fhgndlapolkfalmjcgchjegndhlccpla"
 ];
 
 // Rate limit: requests per IP per minute
