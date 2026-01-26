@@ -302,11 +302,11 @@ CRITICAL RULES:
 }
 
 // ==========================================
-// Render Paragraphs with Animation
+// Render Paragraphs with Animation (XSS-Safe)
 // ==========================================
 
 function renderParagraphs(container, text, delay = 0) {
-    container.innerHTML = '';
+    container.innerHTML = ''; // Safe: just clearing
 
     // Split by [PARA] marker or double newlines
     const paragraphs = text
@@ -315,14 +315,29 @@ function renderParagraphs(container, text, delay = 0) {
         .filter(p => p.length > 0);
 
     paragraphs.forEach((para, index) => {
-        // Convert **text** to highlighted spans
-        const formattedPara = para.replace(
-            /\*\*([^*]+)\*\*/g,
-            '<span class="highlight">$1</span>'
-        );
-
         const p = document.createElement('p');
-        p.innerHTML = formattedPara;
+
+        // XSS-Safe: Parse **text** manually and create elements
+        const parts = para.split(/(\*\*[^*]+\*\*)/g);
+        parts.forEach(part => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                // Create highlight span safely
+                const span = document.createElement('span');
+                span.className = 'highlight';
+                span.textContent = part.slice(2, -2); // Remove ** markers
+                p.appendChild(span);
+            } else if (part.startsWith('<span class="expert-note">') && part.includes('</span>')) {
+                // Handle expert-note (trusted internal content)
+                const noteSpan = document.createElement('span');
+                noteSpan.className = 'expert-note';
+                noteSpan.textContent = part.replace(/<span class="expert-note">|<\/span>/g, '');
+                p.appendChild(noteSpan);
+            } else {
+                // Plain text - use textContent (safe)
+                p.appendChild(document.createTextNode(part));
+            }
+        });
+
         p.classList.add('streaming');
         p.style.animationDelay = `${delay + index * 0.3}s`;
         container.appendChild(p);
@@ -468,9 +483,17 @@ function sleep(ms) {
 // Dialogue Handler
 // ==========================================
 
+const MAX_INPUT_LENGTH = 500; // Prevent excessive API usage
+
 dialogueInput?.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter' && dialogueInput.value.trim()) {
-        const question = dialogueInput.value.trim();
+        let question = dialogueInput.value.trim();
+
+        // Input length validation
+        if (question.length > MAX_INPUT_LENGTH) {
+            question = question.substring(0, MAX_INPUT_LENGTH);
+        }
+
         dialogueInput.value = '';
         dialogueInput.disabled = true;
         dialogueInput.placeholder = 'Listening...';
