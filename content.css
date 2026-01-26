@@ -1,0 +1,88 @@
+/* ==========================================
+   Echo · 回声 — Content Styles
+   "好的入口，是当你不需要它时，它不存在；
+    当你需要它时，它就在手边。"
+   ========================================== */
+
+/* The Omega Button - A perception point, not a function key */
+#echo-omega-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.25;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  vertical-align: middle;
+}
+
+#echo-omega-trigger::before {
+  content: 'Ω';
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 16px;
+  color: #aaa;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Hover state - the moment of awareness */
+#echo-omega-trigger:hover {
+  opacity: 1;
+}
+
+#echo-omega-trigger:hover::before {
+  color: #D4A017;
+  text-shadow: 0 0 20px rgba(212, 160, 23, 0.4);
+}
+
+/* Subtle pulse animation when idle - breathing */
+@keyframes echo-breathe {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.35; }
+}
+
+#echo-omega-trigger.idle {
+  animation: echo-breathe 4s ease-in-out infinite;
+}
+
+/* Active state - summoning */
+#echo-omega-trigger.summoning::before {
+  color: #D4A017;
+  animation: echo-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes echo-pulse {
+  0%, 100% { 
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* Dark mode compatibility */
+html[dark] #echo-omega-trigger::before,
+[dark] #echo-omega-trigger::before {
+  color: #666;
+}
+
+html[dark] #echo-omega-trigger:hover::before,
+[dark] #echo-omega-trigger:hover::before {
+  color: #D4A017;
+}
+
+/* YouTube specific positioning adjustments */
+ytd-watch-metadata #echo-omega-trigger {
+  margin-left: 16px;
+}
+
+/* Hide on non-video pages */
+body:not([data-echo-video-page]) #echo-omega-trigger {
+  display: none;
+}
