@@ -2,23 +2,21 @@
 // Echo · 回声 — Side Panel Script
 // ==========================================
 
-// Worker URL from user settings (configurable via options page)
-let QWEN_API_URL = '';
+// Default Worker URL (protected by extension ID validation on the server)
+const DEFAULT_WORKER_URL = 'https://echo-backend.leozhao154.workers.dev/';
+let QWEN_API_URL = DEFAULT_WORKER_URL;
 
-// Initialize Worker URL from storage
+// Optional: Allow advanced users to override via options page
 async function initializeWorkerURL() {
     try {
         const result = await chrome.storage.sync.get(['workerUrl']);
-        QWEN_API_URL = result.workerUrl || '';
-
-        if (!QWEN_API_URL) {
-            console.error('Echo: Worker URL not configured');
-            return false;
+        if (result.workerUrl) {
+            QWEN_API_URL = result.workerUrl; // Use custom URL if set
         }
         return true;
     } catch (e) {
-        console.error('Echo: Failed to load settings', e);
-        return false;
+        // Storage error, use default
+        return true;
     }
 }
 
@@ -559,12 +557,7 @@ chrome.storage?.session?.onChanged?.addListener((changes) => {
 // Initialize
 // ==========================================
 
-// Check Worker URL before starting
-initializeWorkerURL().then(hasUrl => {
-    if (hasUrl) {
-        summonSoul();
-    } else {
-        showVoid('Please configure Worker URL');
-        statusText.textContent = 'Right-click extension → Options';
-    }
+// Check for custom Worker URL, then start
+initializeWorkerURL().then(() => {
+    summonSoul();
 });
