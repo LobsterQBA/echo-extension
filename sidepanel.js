@@ -2,8 +2,25 @@
 // Echo · 回声 — Side Panel Script
 // ==========================================
 
-// Cloudflare Worker Proxy URL
-const QWEN_API_URL = 'https://echo-backend.leozhao154.workers.dev/';
+// Worker URL from user settings (configurable via options page)
+let QWEN_API_URL = '';
+
+// Initialize Worker URL from storage
+async function initializeWorkerURL() {
+    try {
+        const result = await chrome.storage.sync.get(['workerUrl']);
+        QWEN_API_URL = result.workerUrl || '';
+
+        if (!QWEN_API_URL) {
+            console.error('Echo: Worker URL not configured');
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error('Echo: Failed to load settings', e);
+        return false;
+    }
+}
 
 // DOM Elements
 const stateVoid = document.getElementById('stateVoid');
@@ -317,6 +334,21 @@ function renderParagraphs(container, text, delay = 0) {
     paragraphs.forEach((para, index) => {
         const p = document.createElement('p');
 
+        // Handle [NOTE]...[/NOTE] markers (trusted internal content for expert intro)
+        if (para.includes('[NOTE]') && para.includes('[/NOTE]')) {
+            const noteMatch = para.match(/\[NOTE\](.*?)\[\/NOTE\]/);
+            if (noteMatch) {
+                const noteSpan = document.createElement('span');
+                noteSpan.className = 'expert-note';
+                noteSpan.textContent = 'Note: ' + noteMatch[1];
+                p.appendChild(noteSpan);
+                p.classList.add('streaming');
+                p.style.animationDelay = `${delay + index * 0.3}s`;
+                container.appendChild(p);
+                return;
+            }
+        }
+
         // XSS-Safe: Parse **text** manually and create elements
         const parts = para.split(/(\*\*[^*]+\*\*)/g);
         parts.forEach(part => {
@@ -326,12 +358,6 @@ function renderParagraphs(container, text, delay = 0) {
                 span.className = 'highlight';
                 span.textContent = part.slice(2, -2); // Remove ** markers
                 p.appendChild(span);
-            } else if (part.startsWith('<span class="expert-note">') && part.includes('</span>')) {
-                // Handle expert-note (trusted internal content)
-                const noteSpan = document.createElement('span');
-                noteSpan.className = 'expert-note';
-                noteSpan.textContent = part.replace(/<span class="expert-note">|<\/span>/g, '');
-                p.appendChild(noteSpan);
             } else {
                 // Plain text - use textContent (safe)
                 p.appendChild(document.createTextNode(part));
@@ -374,10 +400,10 @@ function showManifest(data) {
     soulName.innerHTML = `I am <em>${data.expert.name}</em>.`;
     soulConfession.textContent = data.expert.confession;
 
-    // Prepare content with intro note
+    // Prepare content with intro note (using custom marker, not HTML)
     let fullContent = data.expert.response;
     if (data.expert.intro) {
-        fullContent += `[PARA]<span class="expert-note">Note: ${data.expert.intro}</span>`;
+        fullContent += `[PARA][NOTE]${data.expert.intro}[/NOTE]`;
     }
 
     // Render paragraphs with staggered animation
@@ -533,4 +559,12 @@ chrome.storage?.session?.onChanged?.addListener((changes) => {
 // Initialize
 // ==========================================
 
-summonSoul();
+// Check Worker URL before starting
+initializeWorkerURL().then(hasUrl => {
+    if (hasUrl) {
+        summonSoul();
+    } else {
+        showVoid('Please configure Worker URL');
+        statusText.textContent = 'Right-click extension → Options';
+    }
+});

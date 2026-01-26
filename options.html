@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Echo · 回声 Settings</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #D4A017;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 32px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            color: #fff;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            border-color: #D4A017;
+            box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.1);
+        }
+
+        input::placeholder {
+            color: #555;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin-top: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #D4A017;
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #e6b82e;
+            transform: translateY(-1px);
+        }
+
+        .status {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #4CAF50;
+            min-height: 20px;
+        }
+
+        .help {
+            margin-top: 32px;
+            padding: 16px;
+            background: rgba(212, 160, 23, 0.05);
+            border: 1px solid rgba(212, 160, 23, 0.1);
+            border-radius: 6px;
+        }
+
+        .help h3 {
+            font-size: 13px;
+            color: #D4A017;
+            margin-bottom: 8px;
+        }
+
+        .help p {
+            font-size: 12px;
+            color: #888;
+            line-height: 1.6;
+        }
+
+        .help code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Echo · 回声</h1>
+        <p class="subtitle">Configure your AI backend connection</p>
+
+        <label for="workerUrl">Worker URL</label>
+        <input type="text" id="workerUrl" placeholder="https://your-worker.workers.dev/">
+
+        <button class="btn" id="save">Save Settings</button>
+        <p class="status" id="status"></p>
+
+        <div class="help">
+            <h3>Need help?</h3>
+            <p>
+                You need to deploy your own Cloudflare Worker to use Echo.<br><br>
+                1. See <code>DEPLOY.md</code> in the extension folder<br>
+                2. Copy your Worker URL (e.g., <code>https://echo-backend.xxx.workers.dev/</code>)<br>
+                3. Paste it above and click Save
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const workerUrlInput = document.getElementById('workerUrl');
+        const saveBtn = document.getElementById('save');
+        const statusEl = document.getElementById('status');
+
+        // Load saved URL
+        chrome.storage.sync.get(['workerUrl'], (result) => {
+            if (result.workerUrl) {
+                workerUrlInput.value = result.workerUrl;
+            }
+        });
+
+        // Save URL
+        saveBtn.addEventListener('click', () => {
+            const url = workerUrlInput.value.trim();
+
+            if (!url) {
+                statusEl.textContent = 'Please enter a Worker URL';
+                statusEl.style.color = '#f44336';
+                return;
+            }
+
+            if (!url.startsWith('https://')) {
+                statusEl.textContent = 'URL must start with https://';
+                statusEl.style.color = '#f44336';
+                return;
+            }
+
+            chrome.storage.sync.set({ workerUrl: url }, () => {
+                statusEl.textContent = '✓ Saved! Reload the extension to apply.';
+                statusEl.style.color = '#4CAF50';
+            });
+        });
+    </script>
+</body>
+
+</html>

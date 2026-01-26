@@ -10,9 +10,9 @@
   ],
   "host_permissions": [
     "https://www.youtube.com/*",
-    "https://youtube.com/*",
-    "https://*.workers.dev/*"
+    "https://youtube.com/*"
   ],
+  "options_page": "options.html",
   "background": {
     "service_worker": "background.js"
   },
