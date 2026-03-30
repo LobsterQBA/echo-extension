@@ -21,6 +21,16 @@ async function initializeWorkerURL() {
 }
 
 // DOM Elements
+const stateOnboarding = document.getElementById('stateOnboarding');
+const startChannelingBtn = document.getElementById('startChannelingBtn');
+const tutorialToggle = document.getElementById('tutorialToggle');
+const tutorialOverlay = document.getElementById('tutorialOverlay');
+const tutorialClose = document.getElementById('tutorialClose');
+const dexToggle = document.getElementById('dexToggle');
+const dexOverlay = document.getElementById('dexOverlay');
+const dexClose = document.getElementById('dexClose');
+const dexList = document.getElementById('dexList');
+const saveSoulBtn = document.getElementById('saveSoulBtn');
 const stateVoid = document.getElementById('stateVoid');
 const stateManifest = document.getElementById('stateManifest');
 const inputArea = document.getElementById('inputArea');
@@ -33,11 +43,16 @@ const dialogueInput = document.getElementById('dialogueInput');
 const dialogueResponse = document.getElementById('dialogueResponse');
 const dialogueQuestion = document.getElementById('dialogueQuestion');
 const dialogueAnswer = document.getElementById('dialogueAnswer');
+const mainTypingIndicator = document.getElementById('mainTypingIndicator');
+const chatTypingIndicator = document.getElementById('chatTypingIndicator');
 
 // Current soul state
 let currentExpert = null;
 let currentTranscript = null;
+let currentVideoInfo = null;
 let conversationHistory = [];
+let needsInputHint = false;
+let isCurrentSoulSaved = false;
 
 // ==========================================
 // Qwen API Call
@@ -317,62 +332,198 @@ CRITICAL RULES:
 }
 
 // ==========================================
-// Render Paragraphs with Animation (XSS-Safe)
+// Render Paragraphs with Simulated Streaming (XSS-Safe)
 // ==========================================
 
-function renderParagraphs(container, text, delay = 0) {
-    container.innerHTML = ''; // Safe: just clearing
+async function renderParagraphsStreaming(container, text, onComplete = null) {
+    container.innerHTML = '';
+    
+    // Split by [PARA] or double newlines to define paragraphs
+    const paragraphTexts = text.split(/\[PARA\]|\n\n/).map(p => p.trim()).filter(p => p.length > 0);
 
-    // Split by [PARA] marker or double newlines
-    const paragraphs = text
-        .split(/\[PARA\]|\n\n/)
-        .map(p => p.trim())
-        .filter(p => p.length > 0);
+    for (const para of paragraphTexts) {
+        const pElem = document.createElement('p');
+        container.appendChild(pElem);
 
-    paragraphs.forEach((para, index) => {
-        const p = document.createElement('p');
-
-        // Handle [NOTE]...[/NOTE] markers (trusted internal content for expert intro)
+        // Handle expert intro note [NOTE]...[/NOTE]
         if (para.includes('[NOTE]') && para.includes('[/NOTE]')) {
             const noteMatch = para.match(/\[NOTE\](.*?)\[\/NOTE\]/);
             if (noteMatch) {
                 const noteSpan = document.createElement('span');
                 noteSpan.className = 'expert-note';
                 noteSpan.textContent = 'Note: ' + noteMatch[1];
-                p.appendChild(noteSpan);
-                p.classList.add('streaming');
-                p.style.animationDelay = `${delay + index * 0.3}s`;
-                container.appendChild(p);
-                return;
+                pElem.appendChild(noteSpan);
+                pElem.style.opacity = '1';
+                pElem.style.filter = 'blur(0)';
+                await sleep(300); // brief pause after note
+                continue;
             }
         }
 
-        // XSS-Safe: Parse **text** manually and create elements
+        // Process bolding markers **text** into segments
+        // We will simulate typing block by block (plain text vs bold text)
         const parts = para.split(/(\*\*[^*]+\*\*)/g);
-        parts.forEach(part => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-                // Create highlight span safely
-                const span = document.createElement('span');
-                span.className = 'highlight';
-                span.textContent = part.slice(2, -2); // Remove ** markers
-                p.appendChild(span);
-            } else {
-                // Plain text - use textContent (safe)
-                p.appendChild(document.createTextNode(part));
-            }
-        });
+        
+        for (const part of parts) {
+            if (!part) continue;
 
-        p.classList.add('streaming');
-        p.style.animationDelay = `${delay + index * 0.3}s`;
-        container.appendChild(p);
-    });
+            const isBold = part.startsWith('**') && part.endsWith('**');
+            const actualText = isBold ? part.slice(2, -2) : part;
+            
+            // Create a span wrapper for this text segment
+            const span = document.createElement('span');
+            if (isBold) span.className = 'highlight';
+            pElem.appendChild(span);
+
+            // Stream character by character
+            for (let i = 0; i < actualText.length; i++) {
+                span.textContent += actualText[i];
+                // Randomize delay slightly to feel like human typing (10ms - 30ms)
+                // Punctuation gets a slightly longer pause
+                const char = actualText[i];
+                let delay = Math.random() * 20 + 10;
+                if (['.', '!', '?', ',', ';'].includes(char)) delay += 40;
+                
+                // Allow user rapid-skip by holding click (optional upgrade, but not implemented for MVP simplicity)
+                await sleep(delay);
+                
+                // Keep scrolling to bottom if we are in chat mode
+                if (container.id === 'dialogueAnswer') {
+                    const manifest = document.getElementById('stateManifest');
+                    manifest.scrollTop = manifest.scrollHeight;
+                }
+            }
+        }
+        
+        // Pause between paragraphs
+        await sleep(400);
+    }
+    
+    if (onComplete) onComplete();
 }
 
 // ==========================================
 // State Management
 // ==========================================
 
+function showTutorial() {
+    tutorialOverlay.classList.remove('hidden');
+}
+
+function hideTutorial() {
+    tutorialOverlay.classList.add('hidden');
+}
+
+tutorialToggle?.addEventListener('click', showTutorial);
+tutorialClose?.addEventListener('click', hideTutorial);
+tutorialOverlay?.addEventListener('click', (e) => {
+    // Close if clicking the overlay background itself
+    if (e.target === tutorialOverlay) hideTutorial();
+});
+
+// -- Dex Modal --
+function showDex() {
+    renderDex();
+    dexOverlay.classList.remove('hidden');
+}
+
+function hideDex() {
+    dexOverlay.classList.add('hidden');
+}
+
+dexToggle?.addEventListener('click', showDex);
+dexClose?.addEventListener('click', hideDex);
+dexOverlay?.addEventListener('click', (e) => {
+    if (e.target === dexOverlay) hideDex();
+});
+
+// -- Save Soul Logic --
+async function initSaveBtnState() {
+    if (!currentExpert) return;
+    const data = await chrome.storage.local.get(['soulDex']);
+    const dex = data.soulDex || [];
+    isCurrentSoulSaved = dex.some(s => s.name === currentExpert.name && s.videoTitle === currentVideoInfo?.title);
+    
+    if (isCurrentSoulSaved) {
+        saveSoulBtn.classList.add('saved');
+        saveSoulBtn.textContent = '★';
+    } else {
+        saveSoulBtn.classList.remove('saved');
+        saveSoulBtn.textContent = '☆';
+    }
+}
+
+saveSoulBtn?.addEventListener('click', async () => {
+    if (!currentExpert || !currentVideoInfo) return;
+    
+    const data = await chrome.storage.local.get(['soulDex']);
+    let dex = data.soulDex || [];
+    
+    if (isCurrentSoulSaved) {
+        // Remove
+        dex = dex.filter(s => !(s.name === currentExpert.name && s.videoTitle === currentVideoInfo.title));
+        isCurrentSoulSaved = false;
+        saveSoulBtn.classList.remove('saved');
+        saveSoulBtn.textContent = '☆';
+    } else {
+        // Save
+        dex.unshift({
+            name: currentExpert.name,
+            confession: currentExpert.confession,
+            videoTitle: currentVideoInfo.title,
+            timestamp: Date.now()
+        });
+        isCurrentSoulSaved = true;
+        saveSoulBtn.classList.add('saved');
+        saveSoulBtn.textContent = '★';
+    }
+    
+    await chrome.storage.local.set({ soulDex: dex });
+});
+
+async function renderDex() {
+    const data = await chrome.storage.local.get(['soulDex']);
+    const dex = data.soulDex || [];
+    
+    dexList.innerHTML = '';
+    
+    if (dex.length === 0) {
+        dexList.innerHTML = '<div class="dex-empty">No souls conserved yet.</div>';
+        return;
+    }
+    
+    dex.forEach(soul => {
+        const item = document.createElement('div');
+        item.className = 'dex-item';
+        
+        const dateStr = new Date(soul.timestamp).toLocaleDateString();
+        
+        item.innerHTML = `
+            <div class="dex-item-name">${soul.name}</div>
+            <div class="dex-item-quote">"${soul.confession}"</div>
+            <div style="font-size: 10px; color: rgba(255,255,255,0.25); margin-top: 10px;">Summoned on ${dateStr} • ${soul.videoTitle}</div>
+        `;
+        dexList.appendChild(item);
+    });
+}
+
+function showOnboarding() {
+    stateOnboarding.classList.remove('hidden');
+    stateOnboarding.classList.add('active');
+    stateVoid.classList.add('hidden');
+    stateManifest.classList.add('hidden');
+    inputArea.classList.add('hidden');
+}
+
+startChannelingBtn?.addEventListener('click', async () => {
+    stateOnboarding.classList.add('hidden');
+    await chrome.storage.local.set({ hasSeenOnboarding: true });
+    needsInputHint = true;
+    summonSoul();
+});
+
 function showVoid(status = 'Sensing') {
+    stateOnboarding.classList.add('hidden');
     stateVoid.classList.remove('hidden');
     stateManifest.classList.add('hidden');
     inputArea.classList.add('hidden');
@@ -398,14 +549,38 @@ function showManifest(data) {
     soulName.innerHTML = `I am <em>${data.expert.name}</em>.`;
     soulConfession.textContent = data.expert.confession;
 
+    // Check saved state
+    initSaveBtnState();
+
     // Prepare content with intro note (using custom marker, not HTML)
     let fullContent = data.expert.response;
     if (data.expert.intro) {
         fullContent += `[PARA][NOTE]${data.expert.intro}[/NOTE]`;
     }
 
-    // Render paragraphs with staggered animation
-    renderParagraphs(soulContent, fullContent, 0);
+    // Render paragraphs with simulated typescript streaming
+    soulContent.innerHTML = ''; // Clear prior content
+    mainTypingIndicator.classList.remove('hidden');
+
+    // Simulate thinking delay
+    setTimeout(async () => {
+        mainTypingIndicator.classList.add('hidden');
+        await renderParagraphsStreaming(soulContent, fullContent, () => {
+             // Post-manifestation hint
+            if (needsInputHint) {
+                needsInputHint = false;
+                setTimeout(() => {
+                    const inputWrapper = document.querySelector('.input-wrapper');
+                    if (inputWrapper) {
+                        inputWrapper.classList.add('input-hint-pulse');
+                        setTimeout(() => {
+                            inputWrapper.classList.remove('input-hint-pulse');
+                        }, 4000);
+                    }
+                }, 1000);
+            }
+        });
+    }, 1200);
 
     // Hide dialogue response initially
     dialogueResponse.classList.add('hidden');
@@ -449,22 +624,23 @@ async function summonSoul() {
     showVoid('Sensing');
 
     await sleep(600);
-    showVoid('Fetching transcript');
+    showVoid('Reading transcript');
 
     const videoData = await fetchVideoData();
 
     if (!videoData || !videoData.title || videoData.title === 'Unknown') {
-        showVoid('Waiting for video');
+        showVoid('Waiting for YouTube video...');
         setTimeout(summonSoul, 2000);
         return;
     }
 
     currentTranscript = videoData.transcript;
+    currentVideoInfo = videoData;
 
-    showVoid('Finding expert');
+    showVoid('Identifying speakers');
     await sleep(300);
 
-    showVoid('Channeling');
+    showVoid('Summoning distinct voice');
 
     try {
         // New AI-driven approach: analyze content and select expert in one call
@@ -523,18 +699,25 @@ dialogueInput?.addEventListener('keydown', async (e) => {
         dialogueInput.placeholder = 'Listening...';
 
         try {
-            const response = await generateFollowUp(question);
-
             dialogueResponse.classList.remove('hidden');
             dialogueQuestion.textContent = `"${question}"`;
-            renderParagraphs(dialogueAnswer, response);
+            dialogueAnswer.innerHTML = ''; // clear previous answer
+            chatTypingIndicator.classList.remove('hidden');
 
-            // Scroll to bottom
             const manifest = document.getElementById('stateManifest');
             manifest.scrollTop = manifest.scrollHeight;
 
+            const response = await generateFollowUp(question);
+
+            chatTypingIndicator.classList.add('hidden');
+            
+            await renderParagraphsStreaming(dialogueAnswer, response, () => {
+                // Done streaming
+            });
+
         } catch (error) {
             console.error('Dialogue error:', error);
+            chatTypingIndicator.classList.add('hidden');
         }
 
         dialogueInput.disabled = false;
@@ -558,6 +741,17 @@ chrome.storage?.session?.onChanged?.addListener((changes) => {
 // ==========================================
 
 // Check for custom Worker URL, then start
-initializeWorkerURL().then(() => {
-    summonSoul();
+initializeWorkerURL().then(async () => {
+    const { hasSeenOnboarding, hasSeenTutorial } = await chrome.storage.local.get(['hasSeenOnboarding', 'hasSeenTutorial']);
+    
+    if (!hasSeenOnboarding) {
+        showOnboarding();
+        // Show tutorial automatically on very first load
+        if (!hasSeenTutorial) {
+            showTutorial();
+            await chrome.storage.local.set({ hasSeenTutorial: true });
+        }
+    } else {
+        summonSoul();
+    }
 });

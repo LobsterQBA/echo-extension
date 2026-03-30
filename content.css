@@ -86,3 +86,46 @@ ytd-watch-metadata #echo-omega-trigger {
 body:not([data-echo-video-page]) #echo-omega-trigger {
   display: none;
 }
+
+/* Onboarding Discovery Tooltip */
+#echo-omega-trigger.echo-discovery {
+  opacity: 1 !important;
+  animation: echo-discovery-breathe 2s ease-in-out infinite !important;
+  overflow: visible !important;
+}
+
+#echo-omega-trigger.echo-discovery::before {
+  color: #D4A017 !important;
+  text-shadow: 0 0 15px rgba(212, 160, 23, 0.6) !important;
+}
+
+#echo-omega-trigger.echo-discovery::after {
+  content: 'Summon a new perspective';
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0d0d0d;
+  border: 1px solid rgba(212, 160, 23, 0.4);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  animation: echo-float-tooltip 3s ease-in-out infinite;
+  z-index: 1000;
+}
+
+@keyframes echo-discovery-breathe {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes echo-float-tooltip {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-4px); }
+}

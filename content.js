@@ -203,8 +203,8 @@
     if (transcript) {
       const data = {
         ...info,
-        transcript: transcript.fullText,
-        transcriptSegments: transcript.segments
+        transcript: typeof transcript === 'string' ? transcript : transcript.fullText,
+        transcriptSegments: transcript.segments || []
       };
       chrome.storage.session.set({ currentVideoWithTranscript: data }).catch(() => { });
       chrome.runtime.sendMessage({ type: 'VIDEO_WITH_TRANSCRIPT', data }).catch(() => { });
@@ -250,6 +250,15 @@
 
     button.addEventListener('click', handleOmegaClick);
 
+    // Check for onboarding status and apply class
+    try {
+      chrome.storage.local.get(['hasSeenOnboarding'], (result) => {
+        if (!result.hasSeenOnboarding) {
+          button.classList.add('echo-discovery');
+        }
+      });
+    } catch (e) { }
+
     button.addEventListener('mouseenter', () => {
       button.style.opacity = '1';
       button.style.color = '#D4A017';
@@ -277,6 +286,7 @@
     e.stopPropagation();
 
     const button = e.currentTarget;
+    button.classList.remove('echo-discovery');
     button.classList.add('summoning');
     button.style.opacity = '1';
     button.style.color = '#D4A017';
@@ -457,7 +467,11 @@
     if (message.type === 'GET_TRANSCRIPT') {
       const info = getVideoInfo();
       getTranscript(info.videoId).then(transcript => {
-        sendResponse({ ...info, transcript: transcript?.fullText || null });
+        let fullText = null;
+        if (transcript) {
+            fullText = typeof transcript === 'string' ? transcript : transcript.fullText;
+        }
+        sendResponse({ ...info, transcript: fullText });
       });
       return true; // Keep channel open for async
     }
