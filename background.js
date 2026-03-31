@@ -1,5 +1,5 @@
-// Echo · 回声 — Background Service Worker
-// 静默的协调者
+// Echo — Background Service Worker
+// The silent coordinator
 
 // Enable side panel on YouTube video pages only
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {

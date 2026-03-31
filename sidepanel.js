@@ -1,5 +1,5 @@
 // ==========================================
-// Echo · 回声 — Side Panel Script
+// Echo — Side Panel Script
 // ==========================================
 
 // Default Worker URL (protected by extension ID validation on the server)

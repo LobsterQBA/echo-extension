@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Echo · 回声",
+  "name": "Echo",
   "version": "1.1.0",
-  "description": "灵魂连接器 — 不是摘要，是回声",
+  "description": "Watch any YouTube video and get unique insights from a relevant expert — in their own voice.",
   "permissions": [
     "sidePanel",
     "activeTab",
@@ -39,7 +39,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Echo · 回声"
+    "default_title": "Echo"
   },
   "web_accessible_resources": [
     {

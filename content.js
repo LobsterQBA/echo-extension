@@ -1,5 +1,5 @@
-// Echo · 回声 — Content Script
-// "让它长在标题与信息流的缝隙里"
+// Echo — Content Script
+// "Let it grow in the gap between the title and the feed"
 
 (function () {
   'use strict';
@@ -225,9 +225,9 @@
     const button = document.createElement('button');
     button.id = 'echo-omega-trigger';
     button.className = 'idle';
-    button.setAttribute('aria-label', 'Echo · 召唤灵魂');
+    button.setAttribute('aria-label', 'Echo — Summon a soul');
 
-    // 添加内联样式确保可见性
+    // Add inline styles to ensure visibility
     button.style.cssText = `
       display: inline-flex !important;
       align-items: center !important;
@@ -486,7 +486,7 @@
   function init() {
     console.log('Echo: Content script initializing...');
 
-    // 初始注入
+    // Initial injection
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         setTimeout(attemptInjection, 1000);
@@ -495,7 +495,7 @@
       setTimeout(attemptInjection, 1000);
     }
 
-    // 监听 YouTube SPA 导航 with debounce
+    // Watch YouTube SPA navigation with debounce
     let mutationTimeout = null;
     const observer = new MutationObserver(() => {
       // Debounce: wait 300ms after last mutation before executing
@@ -503,7 +503,7 @@
       mutationTimeout = setTimeout(() => {
         handleNavigation();
 
-        // 如果按钮被 YouTube 移除了，重新注入
+        // Re-inject if button was removed by YouTube
         if (location.href.includes('youtube.com/watch') &&
           !document.getElementById('echo-omega-trigger')) {
           attemptInjection();
@@ -516,12 +516,12 @@
       subtree: true
     });
 
-    // 监听 popstate
+    // Listen for popstate
     window.addEventListener('popstate', () => {
       setTimeout(handleNavigation, 300);
     });
 
-    // 监听 yt-navigate-finish (YouTube 自己的导航事件)
+    // Listen for yt-navigate-finish (YouTube's own navigation event)
     window.addEventListener('yt-navigate-finish', () => {
       setTimeout(() => {
         injectionAttempts = 0;
