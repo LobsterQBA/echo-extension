@@ -1,50 +1,55 @@
-# Echo · 回声 🌊
+# Echo · 回声
 
-> "并不是摘要，而是回声。"
 > "Not a summary, but an echo."
 
-**Echo** is a Chrome Extension that brings a "soul" to YouTube videos. Instead of dry AI summaries, it summons a specific persona (based on the video content) to offer profound, first-person insights and engage in a dialogue with you.
+**Echo** is a Chrome extension that gives YouTube videos a voice worth arguing with. Instead of a flat AI summary, it reads the transcript, picks a relevant thinker who would see the topic differently from the speaker, and lets you talk with that persona in the side panel.
 
-![Echo Demo](https://via.placeholder.com/800x450?text=Echo+Extension+Demo)
+## What it does
 
-## ✨ Features
+- **Ω button.** A subtle button appears next to the video title. Click it to open the side panel.
+- **Persona selection.** Echo analyzes the transcript and summons a fitting expert or thinker to comment. It identifies the speaker first so the commentator is a *different* perspective, not an echo of the speaker.
+- **First-person dialogue.** The persona answers in character and can reference specific parts of the transcript.
+- **Dark, cinematic UI** with amber accents.
 
-- **Ω Button**: A subtle, breathing Omega button appears next to the video title.
-- **Soul Channeling**: Automatically analyzes the video content and summons the most suitable expert or thinker (e.g., Socrates, Steve Jobs, Feynman) to comment.
-- **Identity Awareness**: Intelligently identifies speakers and ensures the commentator is a *different* perspective, not just an echo of the speaker.
-- **Deep Dialogue**: Chat with the summoned persona. They will respond in character, using first-person perspective ("I believe..."), and can reference specific parts of the video transcript.
-- **Aesthetic UI**: A premium, dark-themed design with cinematic animations and golden amber accents.
+## How it works
 
-## 📥 Installation
+```mermaid
+flowchart LR
+    A["YouTube page"] -->|"content.js: inject Ω, extract transcript"| B["Side panel (sidepanel.js)"]
+    B -->|"transcript + chat"| C["Cloudflare Worker proxy (server/worker.js)"]
+    C -->|"API key stays server-side"| D["Qwen LLM"]
+    D --> C --> B
+```
 
-Since Echo is currently in **Beta** and not yet on the Chrome Web Store, you can install it manually:
+The API key never ships with the extension. The extension talks only to a small proxy you control.
 
-1.  **Download Code**: Click the green **Code** button above and select **Download ZIP**, then unzip it.
-2.  **Open Extensions**: Go to `chrome://extensions/` in Chrome.
-3.  **Developer Mode**: Toggle on **Developer mode** in the top right corner.
-4.  **Load Unpacked**: Click **Load unpacked** (top left) and select the `echo-v2` folder.
-5.  **Enjoy**: Open any YouTube video, look for the **Ω** button near the title, and click it!
+## Install (beta, not yet on the Chrome Web Store)
 
-## 🛠 For Developers
+1. Click **Code → Download ZIP** on this page and unzip it.
+2. Open `chrome://extensions/` and turn on **Developer mode**.
+3. Click **Load unpacked** and select the unzipped folder.
+4. Open any YouTube video and click the **Ω** button near the title.
 
-The backend of Echo uses a **Cloudflare Worker** to securely proxy requests to the AI model (Aliyun Qwen).
+## Run your own backend (optional)
 
-### Directory Structure
-- `manifest.json`: Extension configuration (MV3).
-- `content.js`: Injects the Ω button and handles transcript extraction.
-- `sidepanel.html/js`: The main UI and AI logic.
-- `background.js`: Service worker for side panel management.
-- `server/worker.js`: Cloudflare Worker code for the secure proxy.
+The extension points at a default proxy. To use your own API key, deploy `server/worker.js` to Cloudflare Workers and set your Worker URL in the extension's options page. See [DEPLOY.md](DEPLOY.md).
 
-### Deploy Your Own Backend (Optional)
-If you want to modify the backend or use your own API Key:
-1.  See `DEPLOY.md` for instructions on setting up the Cloudflare Worker.
-2.  Update `sidepanel.js` with your new Worker URL.
+## Project layout
 
-## 🤝 Contributing
+| File | Role |
+| --- | --- |
+| `manifest.json` | MV3 extension config |
+| `content.js`, `content.css` | Injects the Ω button, extracts the transcript |
+| `sidepanel.html`, `sidepanel.js` | Chat UI and persona logic |
+| `background.js` | Service worker that manages the side panel |
+| `options.html` | Custom proxy URL setting |
+| `server/worker.js` | Cloudflare Worker proxy to the model |
+| `docs/privacy-policy.html` | Privacy policy |
 
-Comments and PRs are welcome! Let's make this the most poetic AI extension.
+## Privacy
 
-## 📜 License
+Only the video transcript and your chat messages are sent to the proxy for a response. Nothing is stored server-side. See the [privacy policy](docs/privacy-policy.html).
+
+## License
 
 MIT
